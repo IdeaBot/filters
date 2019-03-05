@@ -3,6 +3,12 @@ from libs import dataloader
 import re
 
 class Command(command.DirectOnlyCommand):
+    '''Deletes a filter
+
+**Usage**
+```@idea delete filter <name>```
+Where
+**`<name>`** is the name of the filter you want to remove '''
     def collect_args(self, message):
         return re.search(r'(?:remove|delete)\s*filter\s*(\S+)', message.content, re.I)
 

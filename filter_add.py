@@ -5,6 +5,23 @@ import time
 import json
 
 class Command(command.DirectOnlyCommand):
+    ''' Creates a filter
+
+**Usage**
+```@Idea create filter <name> match <regex> action <action> [<parameters>] ```
+Where
+**`<name>`** is the name of the filter you want to create
+**`<regex>`** is the regular expression to match (replace spaces with `\\s`)
+**`<action>`** is the action to perform when <regex> matches
+**`<parameters>`** is the parameters for the action, if applicable
+
+Valid **`<action>`**s are:
+`delete`: delete the matched message (Manage Message permissions required)
+`pin`: pin the matched message (Manage Message permissions required)
+`pipe`: inject the message into a pipe (Send Message permissions required)
+`none`: do nothing; sort of useless...
+
+**NOTE:** `[thing]` means `thing` is optional '''
     def collect_args(self, message):
         return re.search(r'(?:add|create)\s*filter\s*(\S+)\s+match\s*(\S+)\s+action\s*(\S+)(?:\s+([\S]+))?', message.content, re.I)
 

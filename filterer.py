@@ -23,6 +23,30 @@ COLUMNS = {
             }
 
 class Command(command.Config, command.AdminCommand):
+    '''Filters messages sent in a channel
+
+**Usage**
+Create a filter
+```@Idea create filter <name> match <regex> action <action> [<parameters>] ```
+Where
+**`<name>`** is the name of the filter you want to create
+**`<regex>`** is the regular expression to match (replace spaces with `\\s`)
+**`<action>`** is the action to perform when <regex> matches
+**`<parameters>`** is the parameters for the action, if applicable
+
+**NOTE:** `[thing]` means `thing` is optional
+
+For more info on creating filters, do
+```@Idea help filter_add ```
+
+Delete a filter
+```@idea delete filter <name>```
+Where
+**`<name>`** is the name of the filter you want to remove
+
+For more info on deleting filters, do
+```@Idea help filter_remove ```
+'''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.public_namespace.database = self.public_namespace.db = dataloader.datafile(self.config['database'])
@@ -47,7 +71,6 @@ class Command(command.Config, command.AdminCommand):
 
     @asyncio.coroutine
     def action(self, message, bot):
-        print('matched!')
         match_id = self.find_match(message)
         self.public_namespace.db.execute('SELECT action, param FROM filters WHERE id=?', (match_id,))
         match_row = self.public_namespace.db.cursor.fetchone()
