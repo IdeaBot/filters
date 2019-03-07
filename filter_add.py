@@ -1,48 +1,39 @@
 from libs import command
-from libs import dataloader
 import re
-import time
-import json
 
 class Command(command.DirectOnlyCommand):
-    ''' Creates a filter
+    '''Add a filter to the current channel.
 
 **Usage**
-```@Idea create filter <name> match <regex> action <action> [<parameters>] ```
+```@Idea add filter <name>```
 Where
-**`<name>`** is the name of the filter you want to create
-**`<regex>`** is the regular expression to match (replace spaces with `\\s`)
-**`<action>`** is the action to perform when <regex> matches
-**`<parameters>`** is the parameters for the action, if applicable
-
-Valid **`<action>`**s are:
-`delete`: delete the matched message (Manage Message permissions required)
-`pin`: pin the matched message (Manage Message permissions required)
-`pipe`: inject the message into a pipe (Send Message permissions required)
-`none`: do nothing; sort of useless...
-
-**NOTE:** `[thing]` means `thing` is optional '''
+**`<name>`** is the name of the filter to remove '''
     def collect_args(self, message):
-        return re.search(r'(?:add|create)\s*filter\s*(\S+)\s+match\s*(\S+)\s+action\s*(\S+)(?:\s+([\S]+))?', message.content, re.I)
+        return re.search(r'(?:\badd)\s*filter\s*(\S+)', message.content, re.I)
 
     def matches(self, message):
         return self.collect_args(message) is not None
 
     def action(self, message):
-        args = self.collect_args(message)
-        self.public_namespace.db.execute('SELECT name FROM filters WHERE name=?', (args.group(1),))
-        if len(self.public_namespace.db.cursor.fetchall()) > 0:
-            yield from self.send_message(message.channel, 'The name you chose is already in use. Please choose a different one.')
+        filter_name = self.collect_args(message).group(1)
+        self.public_namespace.db.execute('SELECT channels FROM filters WHERE name=? AND active=1 AND (public=1 OR owner=?)', (filter_name, message.author.id))
+        results = self.public_namespace.db.cursor.fetchall()
+        if len(results) == 0:
+            yield from self.send_message(message.channel, 'Unable to find a filter named `%s`. Either you do not have access to that filter or it does not exist.' % filter_name)
             return
-        if args.group(3).lower() not in self.public_namespace.FILTER_ACTIONS:
-            yield from self.send_message(message.channel, 'The action you chose is invalid. Please choose a valid action.')
-            return
-        self.public_namespace.db.execute('INSERT INTO filters (name, owner, server, channel, regex, created, action, param) VALUES (?,?,?,?,?,?,?,?)',
-                        (args.group(1), message.author.id, message.server.id, message.channel.id, args.group(2), time.time(), args.group(3), args.group(4)) )
+
+        channels = results[0]['channels']+','+message.channel.id
+        self.public_namespace.db.execute('UPDATE filters SET channels=? WHERE name=?', (channels, filter_name))
         self.public_namespace.db.save()
-        response = 'Successfully created filter `%s`' % args.group(1)
-        if re.search(r'-\bv\b', message.content) is not None:
-            self.public_namespace.db.execute('SELECT * FROM filters WHERE name=?', (args.group(1), ))
-            row = self.public_namespace.db.cursor.fetchone()
-            response += '\n```%s```' % json.dumps(dict(zip(row.keys(), row)), indent=2)
-        yield from self.send_message(message.channel, response)
+        yield from self.send_message(message.channel, 'Successfully added this channel to `%s`' % filter_name)
+
+    def help(self, *args, **kwargs):
+        help_str = super().help(*args, **kwargs)
+        # add featured filters to help
+        self.public_namespace.db.execute('SELECT name, action FROM filters WHERE featured=1 AND active=1 AND public=1')
+        results = self.public_namespace.db.cursor.fetchall()
+        if len(results) > 0:
+            help_str += '\n\n**__Featured__**\n'
+            for row in results:
+                help_str += '**' + row['name'] + '** | ' + row['action'].upper() + '\n'
+        return help_str

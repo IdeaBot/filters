@@ -14,12 +14,14 @@ FILTER_ACTIONS = (DELETE, PIN, PIPE, NOTHING)
 COLUMNS = {
             'owner': 'TEXT NOT NULL DEFAULT "106537989684887552"',
             'server': 'TEXT NOT NULL DEFAULT "381172950448996363"',
-            'channel': 'TEXT NOT NULL DEFAULT "381172950448996365"',
+            'channels': 'TEXT NOT NULL DEFAULT "000000000000000000"',
             'regex': 'TEXT NOT NULL DEFAULT "."',
             'created': 'REAL NOT NULL DEFAULT %s' % time.time(),
             'active': 'INTEGER NOT NULL DEFAULT 1',
             'action': 'TEXT NOT NULL DEFAULT "none"',
-            'param': 'TEXT'
+            'param': 'TEXT',
+            'public': 'INTEGER NOT NULL DEFAULT 0',
+            'featured': 'INTEGER NOT NULL DEFAULT 0'
             }
 
 class Command(command.Config, command.AdminCommand):
@@ -88,7 +90,7 @@ For more info on deleting filters, do
     def find_match(self, message):
         if message.server is None:
             return
-        self.public_namespace.db.execute('SELECT regex, id FROM filters WHERE server=? AND channel=? AND active=1', (message.server.id, message.channel.id))
+        self.public_namespace.db.execute('SELECT regex, id FROM filters WHERE server=? AND channels LIKE ? AND active=1', (message.server.id, '%'+message.channel.id+'%'))
         for row in self.public_namespace.db.cursor.fetchall():
             if re.search(row['regex'], message.content, re.I) is not None:
                 return row['id']
