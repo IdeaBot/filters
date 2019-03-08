@@ -22,6 +22,7 @@ Valid **`<action>`**s are:
 `none`: do nothing; sort of useless...
 
 **NOTE:** `[thing]` means `thing` is optional '''
+
     def collect_args(self, message):
         return re.search(r'(?:create)\s*filter\s*(\S+)\s+match\s*(\S+)\s+action\s*(\S+)(?:\s+([\S]+))?', message.content, re.I)
 

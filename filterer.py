@@ -55,12 +55,7 @@ For more info on deleting filters, do
         # set up db if not already setup
         self.public_namespace.db.execute('CREATE TABLE IF NOT EXISTS filters (id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL)')
         # create columns if not exist
-        self.public_namespace.db.execute('PRAGMA table_info(filters)')
-        column_names = [c[1] for c in self.public_namespace.db.cursor.fetchall()]
-        for name in COLUMNS:
-            if name not in column_names:
-                self.public_namespace.db.execute('ALTER TABLE filters ADD COLUMN %s %s' % (name, COLUMNS[name]) )
-        self.public_namespace.db.save()
+        self.public_namespace.db.patch('filters', COLUMNS, commit=True)
         # set up constants
         self.public_namespace.DELETE = DELETE
         self.public_namespace.PIN = PIN
